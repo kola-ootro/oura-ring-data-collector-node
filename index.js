@@ -9,6 +9,27 @@ const DB_NAME = "oura_data.db";
 
 app.use(express.json());
 
+async function initializeDatabase() {
+  const db = await open({
+    filename: DB_NAME,
+    driver: sqlite3.Database
+  });
+
+  await db.exec(`
+    CREATE TABLE IF NOT EXISTS oura_data (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      endpoint TEXT,
+      date DATE,
+      data JSON
+    )
+  `);
+
+  await db.close();
+}
+
+// Initialize the database when the server starts
+initializeDatabase().catch(console.error);
+
 // API route to get all Oura Ring data in tabular format
 app.get('/api/oura-data-table', async (req, res) => {
   try {
