@@ -9,14 +9,8 @@ const DB_NAME = "oura_data.db";
 
 app.use(express.json());
 
-// API route to get Oura Ring data
-app.get('/api/oura-data', async (req, res) => {
-  const { startDate, endDate, endpoint } = req.query;
-
-  if (!startDate || !endDate || !endpoint) {
-    return res.status(400).json({ error: 'Missing required query parameters' });
-  }
-
+// API route to get all Oura Ring data in tabular format
+app.get('/api/oura-data-table', async (req, res) => {
   try {
     const db = await open({
       filename: DB_NAME,
@@ -24,14 +18,25 @@ app.get('/api/oura-data', async (req, res) => {
     });
 
     const data = await db.all(`
-      SELECT * FROM oura_data
-      WHERE endpoint = ? AND date BETWEEN ? AND ?
-      ORDER BY date
-    `, [endpoint, startDate, endDate]);
+      SELECT endpoint, date, json_extract(data, '$.id') as id, data
+      FROM oura_data
+      ORDER BY date DESC, endpoint
+    `);
 
     await db.close();
 
-    res.json(data);
+    // Transform data into a more tabular format
+    const tableData = data.map(row => {
+      const parsedData = JSON.parse(row.data);
+      return {
+        id: parsedData.id,
+        endpoint: row.endpoint,
+        date: row.date,
+        ...parsedData
+      };
+    });
+
+    res.json(tableData);
   } catch (error) {
     console.error('Error fetching data:', error);
     res.status(500).json({ error: 'Internal server error' });

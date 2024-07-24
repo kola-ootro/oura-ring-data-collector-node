@@ -30,52 +30,54 @@ async function createDatabase() {
   await db.close();
 }
 
-async function fetchOuraData(endpoint, startDate, endDate) {
+async function fetchOuraData(endpoint) {
   const url = `${OURA_API_URL}${endpoint}`;
-  const params = {
-    start_date: startDate,
-    end_date: endDate
-  };
+  let allData = [];
+  let nextToken = null;
 
-  try {
-    const response = await axios.get(url, { headers, params });
-    return response.data;
-  } catch (error) {
-    console.error(`Error fetching data from ${endpoint}: ${error.message}`);
-    return null;
-  }
+  do {
+    try {
+      const params = nextToken ? { next_token: nextToken } : {};
+      const response = await axios.get(url, { headers, params });
+      allData = allData.concat(response.data.data);
+      nextToken = response.data.next_token;
+    } catch (error) {
+      console.error(`Error fetching data from ${endpoint}: ${error.message}`);
+      break;
+    }
+  } while (nextToken);
+
+  return allData;
 }
 
-async function storeData(endpoint, date, data) {
+async function storeData(endpoint, data) {
   const db = await open({
     filename: DB_NAME,
     driver: sqlite3.Database
   });
 
-  await db.run(`
-    INSERT INTO oura_data (endpoint, date, data)
+  const stmt = await db.prepare(`
+    INSERT OR REPLACE INTO oura_data (endpoint, date, data)
     VALUES (?, ?, ?)
-  `, [endpoint, date, JSON.stringify(data)]);
+  `);
 
+  for (const item of data) {
+    await stmt.run(endpoint, item.date, JSON.stringify(item));
+  }
+
+  await stmt.finalize();
   await db.close();
 }
 
 async function main() {
   await createDatabase();
 
-  const endDate = new Date().toISOString().split('T')[0];
-  const startDate = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString().split('T')[0];
-
-  const endpoints = ["daily_activity", "daily_readiness", "daily_sleep"];
+  const endpoints = ["daily_activity", "daily_readiness", "daily_sleep", "sleep", "workout", "tag"];
 
   for (const endpoint of endpoints) {
-    const data = await fetchOuraData(endpoint, startDate, endDate);
-    if (data && data.data) {
-      for (const item of data.data) {
-        if (item.date) {
-          await storeData(endpoint, item.date, item);
-        }
-      }
+    const data = await fetchOuraData(endpoint);
+    if (data && data.length > 0) {
+      await storeData(endpoint, data);
     }
   }
 
