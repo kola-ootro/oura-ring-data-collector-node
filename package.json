@@ -1,17 +1,25 @@
 {
   "name": "oura-ring-data-collector",
   "version": "1.0.0",
-  "description": "Collect and store Oura Ring data",
+  "description": "Collect and display Oura Ring data",
   "main": "index.js",
   "scripts": {
+    "build": "node oura_data_collector.js",
     "start": "node index.js",
-    "collect": "node oura_data_collector.js"
+    "dev": "nodemon index.js"
   },
   "dependencies": {
     "axios": "^0.27.2",
     "dotenv": "^16.0.3",
     "express": "^4.18.2",
-    "sqlite3": "^5.1.6",
-    "sqlite": "^4.1.2"
-  }
+    "sqlite": "^4.1.2",
+    "sqlite3": "^5.1.6"
+  },
+  "devDependencies": {
+    "nodemon": "^2.0.22"
+  },
+  "engines": {
+    "node": ">=14.0.0"
+  },
+  "private": true
 }
