@@ -57,7 +57,13 @@ app.get('/api/oura-data-table', async (req, res) => {
     console.log('Number of rows in oura_data:', count.count);
 
     if (count.count === 0) {
-      return res.json({ message: 'No data available in the database' });
+      return res.json({ 
+        message: 'No data available in the database',
+        debug: {
+          tableExists: true,
+          rowCount: 0
+        }
+      });
     }
 
     const data = await db.all(`
@@ -84,7 +90,7 @@ app.get('/api/oura-data-table', async (req, res) => {
 
     console.log('Transformed table data:', tableData);
 
-    res.json({ debug: { tableExists: !!tableCheck, rowCount: count.count }, data: tableData });
+    res.json({ debug: { tableExists: true, rowCount: count.count }, data: tableData });
   } catch (error) {
     console.error('Error fetching data:', error);
     res.status(500).json({ error: 'Internal server error', details: error.message });

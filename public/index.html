@@ -47,7 +47,7 @@
                     try {
                         const response = await axios.get('/api/oura-data-table');
                         console.log('API response:', response.data);
-                        this.tableData = response.data;
+                        this.tableData = response.data.data;
                         if (this.tableData.length > 0) {
                             this.headers = Object.keys(this.tableData[0]);
                         }
