@@ -5,8 +5,7 @@
   "main": "index.js",
   "scripts": {
     "start": "node index.js",
-    "build": "node oura_data_collector.js",
-    "dev": "nodemon index.js"
+    "build": "node oura_data_collector.js"
   },
   "dependencies": {
     "axios": "^0.27.2",
@@ -15,13 +14,8 @@
     "sqlite": "^4.1.2",
     "sqlite3": "^5.1.6"
   },
-  "devDependencies": {
-    "nodemon": "^2.0.22"
-  },
   "engines": {
-    "node": ">=14.0.0"
+    "node": "14.x"
   },
-  "private": true,
-  "author": "",
-  "license": "ISC"
+  "private": true
 }

@@ -3,6 +3,7 @@ const express = require('express');
 const sqlite3 = require('sqlite3').verbose();
 const { open } = require('sqlite');
 const path = require('path');
+const { fetchOuraData } = require('./oura_data_collector');
 
 const app = express();
 const port = process.env.PORT || 3000;
@@ -94,6 +95,54 @@ app.get('/api/oura-data-table', async (req, res) => {
   } catch (error) {
     console.error('Error fetching data:', error);
     res.status(500).json({ error: 'Internal server error', details: error.message });
+  }
+});
+
+// Route to trigger data collection
+app.get('/api/collect-data', async (req, res) => {
+  try {
+    console.log('Starting data collection process');
+    const endpoints = ["daily_activity", "daily_readiness", "daily_sleep", "sleep", "workout", "tag"];
+    let allData = {};
+
+    for (const endpoint of endpoints) {
+      console.log(`Fetching data for ${endpoint}`);
+      const data = await fetchOuraData(endpoint);
+      allData[endpoint] = data;
+    }
+
+    console.log('Data fetched successfully, attempting to store in database');
+
+    const db = await open({
+      filename: DB_NAME,
+      driver: sqlite3.Database
+    });
+
+    for (const [endpoint, data] of Object.entries(allData)) {
+      for (const item of data) {
+        await db.run(`
+          INSERT OR REPLACE INTO oura_data (endpoint, date, data)
+          VALUES (?, ?, ?)
+        `, [endpoint, item.date, JSON.stringify(item)]);
+      }
+    }
+
+    await db.close();
+
+    console.log('Data stored successfully');
+
+    res.status(200).json({ 
+      message: 'Data collection and storage completed successfully', 
+      debug: { 
+        dataCollected: Object.keys(allData).reduce((acc, key) => {
+          acc[key] = allData[key].length;
+          return acc;
+        }, {})
+      } 
+    });
+  } catch (error) {
+    console.error('Error collecting or storing data:', error);
+    res.status(500).json({ error: 'Failed to collect or store data', details: error.message });
   }
 });
 
