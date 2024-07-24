@@ -64,4 +64,37 @@ app.get('/api/oura-data-table', async (req, res) => {
       SELECT endpoint, date, json_extract(data, '$.id') as id, data
       FROM oura_data
       ORDER BY date DESC, endpoint
-      LIMIT 10  // Limit to 10
+      LIMIT 10 -- Limit to 10 rows for debugging
+    `);
+
+    console.log('Raw data from database:', data);
+
+    await db.close();
+
+    // Transform data into a more tabular format
+    const tableData = data.map(row => {
+      const parsedData = JSON.parse(row.data);
+      return {
+        id: parsedData.id,
+        endpoint: row.endpoint,
+        date: row.date,
+        ...parsedData
+      };
+    });
+
+    console.log('Transformed table data:', tableData);
+
+    res.json({ debug: { tableExists: !!tableCheck, rowCount: count.count }, data: tableData });
+  } catch (error) {
+    console.error('Error fetching data:', error);
+    res.status(500).json({ error: 'Internal server error', details: error.message });
+  }
+});
+
+// Serve static files (for future use with generative graphics)
+app.use(express.static('public'));
+
+// Start the server
+app.listen(port, () => {
+  console.log(`Server running on port ${port}`);
+});
