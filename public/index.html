@@ -11,7 +11,9 @@
 <body>
     <div id="app" class="container mt-5">
         <h1>Oura Ring Data</h1>
-        <table class="table table-striped">
+        <div v-if="error" class="alert alert-danger">{{ error }}</div>
+        <div v-if="loading">Loading...</div>
+        <table v-if="tableData.length > 0" class="table table-striped">
             <thead>
                 <tr>
                     <th v-for="key in headers" :key="key">{{ key }}</th>
@@ -23,6 +25,7 @@
                 </tr>
             </tbody>
         </table>
+        <div v-else-if="!loading">No data available</div>
     </div>
 
     <script>
@@ -30,21 +33,29 @@
             el: '#app',
             data: {
                 tableData: [],
-                headers: []
+                headers: [],
+                loading: true,
+                error: null
             },
             mounted() {
                 this.fetchData();
             },
             methods: {
                 async fetchData() {
+                    this.loading = true;
+                    this.error = null;
                     try {
                         const response = await axios.get('/api/oura-data-table');
+                        console.log('API response:', response.data);
                         this.tableData = response.data;
                         if (this.tableData.length > 0) {
                             this.headers = Object.keys(this.tableData[0]);
                         }
                     } catch (error) {
                         console.error('Error fetching data:', error);
+                        this.error = 'Failed to fetch data. Please try again later.';
+                    } finally {
+                        this.loading = false;
                     }
                 }
             }
